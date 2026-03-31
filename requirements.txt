@@ -3,3 +3,6 @@ openai
 gunicorn
 python-dotenv
 marked
+playwright
+nest_asyncio
+
