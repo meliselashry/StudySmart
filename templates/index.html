@@ -577,30 +577,20 @@ function deleteFile(className, fileIndex) {
             } else {
                 // If they picked vocab mode...
                 if (selectedMode === 'vocab_list') {
-                    // Record the words and the title.
                     currentVocab = data.vocab;
                     currentTitle = data.title;
-                    // Start building a nice table.
                     let tableContent = `<h2>${currentTitle}</h2><table class="vocab-table"><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody>`;
-                    // For every word the AI found...
                     data.vocab.trim().split('\n').forEach(row => {
-                        // Split the word from its definition.
                         const cols = row.split('\t');
-                        // Add a row to our table.
                         if (cols.length >= 2) tableContent += `<tr><td><strong>${cols[0]}</strong></td><td>${cols[1]}</td></tr>`;
                     });
-                    // Close the table.
                     tableContent += `</tbody></table>`;
-                    // Show the table.
                     resultDiv.innerHTML = tableContent;
-                    // Show the Quizlet button.
                     quizletBtn.style.display = 'inline-block';
-                } else {
-                    // If they picked summary mode...
+                } 
+                else {
                     currentTitle = "Study Guide";
-                    // Fix some math formatting issues.
                     let formattedContent = data.result.replace(/\\\[/g, '$$$$').replace(/\\\]/g, '$$$$').replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-                    // Turn the AI text into clean HTML headings and bullets.
                     resultDiv.innerHTML = marked.parse(formattedContent);
                 }
                 // Show the workspace.

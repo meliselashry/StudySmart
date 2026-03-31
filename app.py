@@ -13,7 +13,6 @@ load_dotenv()
 app = Flask(__name__)
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Quizlet setup for Render (using /tmp for temporary storage)
 USER_DATA_DIR = "/tmp/quizlet_user_data"
 nest_asyncio.apply()
 
@@ -41,16 +40,18 @@ def make_summary_from_image(image_data_urls: list) -> str:
 
 def make_vocab_data_combined(image_data_urls: list):
     """
-    Fetches title and vocab with a robust parser to prevent empty tables.
+    Fetches title and vocab with a robust parser.
     """
+    # Updated prompt to ensure actual Tab characters are used
     prompt = """Analyze these images and extract vocabulary.
     
     Format your response EXACTLY like this:
     TITLE: [Insert Title Here]
     VOCAB:
-    term<TAB>definition
+    term	definition
     
-    Do not include any other text, greetings, or markdown formatting (like ```).
+    Use a literal TAB character between the term and definition. 
+    Do not include any other text, greetings, or markdown formatting.
     """
     content = [{"type": "text", "text": prompt}]
     for url in image_data_urls:
@@ -62,33 +63,25 @@ def make_vocab_data_combined(image_data_urls: list):
     )
     
     full_text = response.choices[0].message.content.strip()
-    
-    # DEBUG: This will show up in your Render logs so you can see if the AI is behaving
     print(f"--- AI RAW RESPONSE ---\n{full_text}\n-----------------------")
 
     title = "Class Vocabulary"
     vocab = ""
 
-    # 1. Robust Title Extraction
     if "TITLE:" in full_text:
         try:
-            # Get everything between TITLE: and VOCAB:
             title_match = full_text.split("TITLE:")[1].split("VOCAB:")[0].strip()
             if title_match:
                 title = title_match
         except:
             pass
     
-    # 2. Robust Vocab Extraction
     if "VOCAB:" in full_text:
         vocab = full_text.split("VOCAB:")[1].strip()
     else:
-        # Safety net: If AI forgets 'VOCAB:', assume the whole response is the list
         vocab = full_text
 
-    # Clean up any leftover markdown code blocks if the AI ignored instructions
     vocab = vocab.replace("```text", "").replace("```", "").strip()
-
     return vocab, title
 
 # --- BROWSER ROBOT ---
@@ -97,9 +90,9 @@ def send_vocab_to_quizlet(vocab_text: str, smart_title: str):
     try:
         browser = pw.chromium.launch(headless=True, args=["--no-sandbox"])
         page = browser.new_page()
-        page.goto("[https://quizlet.com/create-set](https://quizlet.com/create-set)")
+        # FIXED URL: Removed markdown formatting
+        page.goto("https://quizlet.com/create-set")
         
-        # Wait up to 10 seconds for the page to load
         page.wait_for_selector("input[name='title']", timeout=10000)
         page.fill("input[name='title']", smart_title)
         
@@ -133,9 +126,8 @@ def analyze():
         if mode == "vocab_list":
             vocab, title = make_vocab_data_combined(image_data_urls)
             
-            # Final Safety: If it's still empty, tell the user why
             if not vocab or len(vocab) < 3:
-                return jsonify({"error": "The AI couldn't find vocabulary in these images. Please ensure the text is clear."}), 500
+                return jsonify({"error": "The AI couldn't find vocabulary. Try a clearer photo."}), 500
                 
             return jsonify({"vocab": vocab, "title": title})
         else:
