@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
     <script>
+        let currentlyOpenClass = null;
+        let currentlyOpenFileIndex = null;
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -36,6 +38,29 @@
                 alert("Failed to copy vocab. Please try again.");
             });
         }
+        // Function to save the current state to the vault
+        function autoSave() {
+            if (currentlyOpenClass !== null && currentlyOpenFileIndex !== null) {
+        // Update the content in our memory object
+                myClasses[currentlyOpenClass][currentlyOpenFileIndex].content = resultDiv.innerHTML;
+        
+        // Push that object to the browser's permanent storage
+                localStorage.setItem('study_vault', JSON.stringify(myClasses));
+                console.log("Autosaved changes...");
+            }
+        }
+
+// Create the "Observer" that runs every time the HTML inside #result changes
+        const observer = new MutationObserver((mutations) => {
+            autoSave();
+        });
+
+// Start watching the #result div
+        observer.observe(document.getElementById('result'), {
+            childList: true, // watches if you add/remove elements
+            subtree: true,   // watches inside nested elements
+            characterData: true // watches as you type text
+        });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -87,6 +112,11 @@
         .draggable-file { cursor: grab; background: #fff; transition: transform 0.1s; }
         .draggable-file:active { cursor: grabbing; }
         .file-list-container { padding-bottom: 10px; }
+        /* This adds a subtle blue glow when you click inside to edit */
+        #result:focus {
+            outline: 2px solid #1a73e8;
+            background-color: #fafafa;
+}
     </style>
 </head>
 <body class="text-center">
@@ -136,7 +166,7 @@
                     Processing all images...
                 </div>
                 
-                <div id="result"></div>
+                <div id="result" contenteditable="true"></div>
                 
                 <div class="mt-4">
                     <button id="download-btn" class="btn btn-primary btn-lg" style="display:none;" onclick="downloadPDF()">📥 Download PDF</button>
@@ -275,26 +305,28 @@
 
     function viewFile(className, fileIndex) {
         const file = myClasses[className][fileIndex];
+    
+    // CRITICAL: Set these so the AutoSave knows which file to update
+        currentlyOpenClass = className;
+        currentlyOpenFileIndex = fileIndex;
+    
         currentTitle = file.title;
         if (file.type === 'vocab') {
             currentVocab = file.vocabData;
             quizletBtn.style.display = 'inline-block';
-        } else {
+        }
+        else {
             quizletBtn.style.display = 'none';
         }
-        resultDiv.innerHTML = `
-            <div class="alert alert-info d-flex justify-content-between align-items-center py-2">
-                <span>Viewing: <strong>${file.title}</strong> (${className})</span>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-info" onclick="renameFile('${className}', ${fileIndex})">✏️ Rename</button>
-                    <button class="btn btn-sm btn-outline-info" onclick="deleteFile('${className}', ${fileIndex})">🗑️ Delete</button>
-                </div>
-            </div>
-            ${file.content}
-        `;
+
+    // Set the content
+        resultDiv.innerHTML = file.content;
         resultDiv.style.display = 'block';
         downloadBtn.style.display = 'inline-block';
-    }
+    
+    // Ensure the result div is editable
+        resultDiv.setAttribute('contenteditable', 'true');
+            }
 
     function deleteFile(className, fileIndex) {
         if (confirm("Delete this file permanently?")) {
@@ -344,6 +376,8 @@
         localStorage.setItem('study_vault', JSON.stringify(myClasses));
         updateClassUI();
         alert(`Saved to ${className}`);
+        currentlyOpenClass = className;
+        currentlyOpenFileIndex = myClasses[className].length - 1;
     }
 
     form.onsubmit = async (e) => {

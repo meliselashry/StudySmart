@@ -126,7 +126,7 @@ def send_vocab_to_quizlet(vocab_text: str, smart_title: str):
     try:
         context = pw.chromium.launch_persistent_context(
             USER_DATA_DIR,
-            headless=False,
+            headless=True,
             args=["--no-sandbox", "--disable-blink-features=AutomationControlled"]
         )
         # We open a Chrome window that you can see (headless=False means 'not hidden').
