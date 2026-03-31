@@ -43,16 +43,23 @@ def make_vocab_data_combined(image_data_urls: list):
     Fetches title and vocab with a robust parser.
     """
     # Updated prompt to ensure actual Tab characters are used
-    prompt = """Analyze these images and extract vocabulary.
-    
-    Format your response EXACTLY like this:
-    TITLE: [Insert Title Here]
-    VOCAB:
-    term	definition
-    
-    Use a literal TAB character between the term and definition. 
-    Do not include any other text, greetings, or markdown formatting.
-    """
+    prompt = """
+        You are a strict data formatter. Extract vocabulary from the text.
+        RULES:
+        1. Format: Term [TAB] Definition
+        2. Do NOT use the words "Definition:" or "Term:" or "Meaning:".
+        3. Use ONLY a single Tab character between the term and the definition.
+        4. One pair per line.
+
+        GOOD EXAMPLE:
+        Photosynthesis	The process by which plants make food using sunlight.
+        Mitochondria	The powerhouse of the cell.
+
+        BAD EXAMPLE (DO NOT DO THIS):
+        Term: Photosynthesis - Definition: The process by which...
+
+        TEXT TO PROCESS:
+        """
     content = [{"type": "text", "text": prompt}]
     for url in image_data_urls:
         content.append({"type": "image_url", "image_url": {"url": url}})
