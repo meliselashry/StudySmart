@@ -21,11 +21,19 @@
             }
         };
 
-        // NEW: Function to copy text specifically for Quizlet Import
-        function copyVocab() {
-            if (!currentVocab) return alert("No vocab to copy!");
+        // UPDATED: This now copies the vocab AND opens Quizlet
+        function handleQuizletExport() {
+            if (!currentVocab) return alert("No vocabulary found to export.");
+
             navigator.clipboard.writeText(currentVocab).then(() => {
-                alert("Vocab copied! Now click 'Open Quizlet', then click 'Import' and Paste (Ctrl+V).");
+                // Inform user about the next steps on the Quizlet page
+                alert("✅ Vocab copied to clipboard!\n\nInstructions for Quizlet:\n1. Press the '+ Import' button.\n2. Paste (Ctrl+V) into the text box.");
+                
+                // Open Quizlet in a new tab
+                window.open('https://quizlet.com/create-set', '_blank');
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                alert("Failed to copy vocab. Please try again.");
             });
         }
     </script>
@@ -132,7 +140,7 @@
                 
                 <div class="mt-4">
                     <button id="download-btn" class="btn btn-primary btn-lg" style="display:none;" onclick="downloadPDF()">📥 Download PDF</button>
-                    <button id="quizlet-btn" class="btn btn-success btn-lg" style="display:none;" onclick="window.open('https://quizlet.com/create-set', '_blank')">🔗 Open Quizlet</button>
+                    <button id="quizlet-btn" class="btn btn-success btn-lg" style="display:none;" onclick="handleQuizletExport()">Quizlet (Import flashcards)</button>
                     
                     <div id="save-section" class="mt-3" style="display:none;">
                         <hr>
@@ -365,18 +373,16 @@
                     currentVocab = data.vocab;
                     currentTitle = data.title || "Vocab List";
                     
-                    // ADDED: Copy Button in the UI
+                    // REMOVED: Individual Copy Button from the UI here
                     let tableContent = `
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="mb-3">
                             <h2>${currentTitle}</h2>
-                            <button class="btn btn-outline-primary btn-sm" onclick="copyVocab()">📋 Copy for Quizlet</button>
                         </div>
                         <table class="vocab-table"><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody>`;
                     
                     const lines = data.vocab.trim().split('\n');
                     lines.forEach(line => {
                         if (!line.trim()) return;
-                        // SMART SPLIT: Tab, Dash, or Colon
                         let parts = line.split('\t');
                         if (parts.length < 2) parts = line.split(' - ');
                         if (parts.length < 2) parts = line.split(': ');
@@ -408,7 +414,17 @@
 
     function downloadPDF() {
         const element = document.getElementById('result');
-        const opt = { margin: 10, filename: (currentTitle || 'Study_Guide').replace(/\s+/g, '_') + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        if (!element.innerHTML.trim() || element.style.display === 'none') {
+            alert("Please generate notes first!");
+            return;
+        }
+        const opt = {
+            margin:       10,
+            filename:     (currentTitle || 'Study_Notes').replace(/\s+/g, '_') + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
         html2pdf().set(opt).from(element).save();
     }
 
