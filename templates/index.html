@@ -447,65 +447,65 @@
     };
 
     async function downloadPDF() {
-    const element = document.getElementById('result');
+        const element = document.getElementById('result');
     
-    if (!element || !element.innerHTML.trim()) {
-        alert("No content to download!");
-        return;
-    }
+        if (!element || !element.innerHTML.trim()) {
+            alert("No content to download!");
+            return;
+        }
 
     // 1. Create a "hidden" container for the PDF version
-    const pdfContainer = document.createElement('div');
-    pdfContainer.innerHTML = element.innerHTML;
+        const pdfContainer = document.createElement('div');
+        pdfContainer.innerHTML = element.innerHTML;
     
     // 2. Clean up UI elements we don't want in the PDF
-    const uiElements = pdfContainer.querySelectorAll('.alert, button, .btn-group');
-    uiElements.forEach(el => el.remove());
+        const uiElements = pdfContainer.querySelectorAll('.alert, button, .btn-group');
+        uiElements.forEach(el => el.remove());
 
     // 3. Force PDF-specific styling to prevent "cutoff"
-    pdfContainer.style.width = "170mm"; // Fits perfectly on A4 with margins
-    pdfContainer.style.padding = "0";
-    pdfContainer.style.margin = "0";
-    pdfContainer.style.color = "black";
-    pdfContainer.style.fontSize = "12pt";
-    pdfContainer.style.lineHeight = "1.4";
-    pdfContainer.style.wordWrap = "break-word"; // Force long words to wrap
+        pdfContainer.style.width = "170mm"; // Fits perfectly on A4 with margins
+        pdfContainer.style.padding = "0";
+        pdfContainer.style.margin = "0";
+        pdfContainer.style.color = "black";
+        pdfContainer.style.fontSize = "12pt";
+        pdfContainer.style.lineHeight = "1.4";
+        pdfContainer.style.wordWrap = "break-word"; // Force long words to wrap
 
     // 4. Specifically fix the Tables
-    const tables = pdfContainer.querySelectorAll('table');
-    tables.forEach(table => {
-        table.style.width = "100%";
-        table.style.tableLayout = "fixed"; // Prevents table from sliding off page
-        table.style.borderCollapse = "collapse";
+        const tables = pdfContainer.querySelectorAll('table');
+        tables.forEach(table => {
+            table.style.width = "100%";
+            table.style.tableLayout = "fixed"; // Prevents table from sliding off page
+            table.style.borderCollapse = "collapse";
         
-        const cells = table.querySelectorAll('th, td');
-        cells.forEach(cell => {
-            cell.style.wordBreak = "break-word"; // Wraps long definitions
-            cell.style.padding = "8px";
-            cell.style.border = "1px solid #ccc";
+            const cells = table.querySelectorAll('th, td');
+            cells.forEach(cell => {
+                cell.style.wordBreak = "break-word"; // Wraps long definitions
+                cell.style.padding = "8px";
+                cell.style.border = "1px solid #ccc";
         });
     });
 
-    const opt = {
-        margin:       15, // 15mm margins
-        filename:     (currentTitle || 'Study_Notes').replace(/\s+/g, '_') + '.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            letterRendering: true,
-            backgroundColor: '#ffffff',
-            width: 750 // Forces the "camera" to see a width that fits A4
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        const opt = {
+            margin:       15, // 15mm margins
+            filename:     (currentTitle || 'Study_Notes').replace(/\s+/g, '_') + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                letterRendering: true,
+                backgroundColor: '#ffffff',
+                width: 750 // Forces the "camera" to see a width that fits A4
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    try {
+        try {
         // We use .from(pdfContainer) so it uses our cleaned, resized version
-        await html2pdf().set(opt).from(pdfContainer).save();
-    } catch (err) {
-        console.error("PDF Error:", err);
-        alert("Error generating PDF.");
+            await html2pdf().set(opt).from(pdfContainer).save();
+        } catch (err) {
+            console.error("PDF Error:", err);
+            alert("Error generating PDF.");
     }
 }
 
