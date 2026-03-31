@@ -446,21 +446,49 @@
         }
     };
 
-    function downloadPDF() {
-        const element = document.getElementById('result');
-        if (!element.innerHTML.trim() || element.style.display === 'none') {
-            alert("Please generate notes first!");
-            return;
-        }
-        const opt = {
-            margin:       10,
-            filename:     (currentTitle || 'Study_Notes').replace(/\s+/g, '_') + '.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save();
+    async function downloadPDF() {
+    const element = document.getElementById('result');
+    
+    if (!element || !element.innerHTML.trim()) {
+        alert("No content to download! Please generate notes first.");
+        return;
     }
+
+    // Clone the element to avoid messing with the live view
+    const clonedElement = element.cloneNode(true);
+    
+    // Remove the "Alert" box from the PDF so it looks like a clean document
+    const alerts = clonedElement.querySelectorAll('.alert');
+    alerts.forEach(a => a.remove());
+
+    // Apply specific styles to the clone so it looks good on paper
+    clonedElement.style.padding = "20px";
+    clonedElement.style.color = "black";
+    clonedElement.style.backgroundColor = "white";
+    clonedElement.style.width = "800px"; // Standardize width for PDF
+
+    const opt = {
+        margin:       15,
+        filename:     (currentTitle || 'Study_Notes').replace(/\s+/g, '_') + '.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            letterRendering: true,
+            backgroundColor: '#ffffff',
+            scrollY: 0 // Prevents "blank page" if you are scrolled down
+        },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // New way: Use the cloned element for the PDF
+    try {
+        await html2pdf().set(opt).from(clonedElement).save();
+    } catch (err) {
+        console.error("PDF Error:", err);
+        alert("Failed to generate PDF. Check the console for details.");
+    }
+}
 
     updateClassUI();
 </script>
