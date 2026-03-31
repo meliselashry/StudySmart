@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,26 +9,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
     <script>
-        // We are creating a "rulebook" for how the math-fixer should work.
         window.MathJax = {
-            // This section defines which symbols represent math formulas.
             tex: {
-                // Single dollar signs mean math that stays inside a sentence.
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
-                // Double dollar signs mean math that gets its own big line.
                 displayMath: [['$$', '$$'], ['\\[', '\\]'], ['[ ', ' ]'], ['[', ']']],
-                // This allows us to use backslashes for special math symbols.
                 processEscapes: true
             },
-            // These options tell the tool which parts of the page to ignore or fix.
             options: {
-                // Ignore standard text classes.
                 ignoreHtmlClass: 'tex2jax_ignore',
-                // Only process things marked as 'tex2jax_process'.
                 processHtmlClass: 'tex2jax_process'
             }
         };
-    // This closes the rulebook for the math-fixer.
+
+        // NEW: Function to copy text specifically for Quizlet Import
+        function copyVocab() {
+            if (!currentVocab) return alert("No vocab to copy!");
+            navigator.clipboard.writeText(currentVocab).then(() => {
+                alert("Vocab copied! Now click 'Open Quizlet', then click 'Import' and Paste (Ctrl+V).");
+            });
+        }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -38,25 +35,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     
     <style>
-        /* When the user clicks print, we make the notes look clean on paper. */
         @media print {
-            /* This ensures the blue stripe stays on the side during printing. */
             #result {
                 border-left: 5px solid #1a73e8 !important;
                 box-shadow: none !important;
                 background: white !important;
             }
         }
-        /* This sets the background color of the whole page to a soft grey. */
         body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; padding: 40px 20px; }
-        /* This keeps the content from stretching too wide on huge monitors. */
         .container-fluid { max-width: 1200px; }
-        /* This creates the large white "card" where you do your work. */
         .main-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        /* This makes the "Study Assistant" title blue and bold. */
         .study-header { color: #1a73e8; font-weight: 700; margin-bottom: 30px; }
         
-        /* This box holds the AI's answer, but it's invisible until the AI is done. */
         #result { 
             display: none; 
             text-align: left; 
@@ -70,50 +60,25 @@
             line-height: 1.6;
         }
 
-        /* This styles any headings that the AI creates inside your notes. */
         #result h1, #result h2 { color: #1a73e8; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 20px; }
-        /* This makes sure math equations look large and don't get cut off. */
         mjx-container { color: #1a73e8; font-size: 1.1em; margin: 15px 0 !important; display: block; overflow-x: auto; }
         
-        /* This creates the grid layout for the vocabulary list. */
         .vocab-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        /* This adds spacing and borders to the words in the table. */
         .vocab-table th, .vocab-table td { padding: 12px; border: 1px solid #dee2e6; text-align: left; }
-        /* This makes the top row of the table grey and bold. */
         .vocab-table th { background-color: #f8f9fa; color: #1a73e8; font-weight: 700; width: 40%; }
         
-        /* This hides the "Processing..." text until you click 'Generate'. */
         .loading { display: none; margin: 20px 0; font-style: italic; color: #666; }
-        /* This creates the clickable boxes for Step 2. */
         .mode-card { border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin-bottom: 20px; transition: 0.3s; cursor: pointer; }
-        /* This makes the boxes light blue when you hover over them. */
         .mode-card:hover { border-color: #1a73e8; background: #f8fbff; }
 
-        /* This styles the folder column on the left. */
         .sidebar { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); height: fit-content; }
-        /* This makes the individual class names look like clickable buttons. */
         .class-item { cursor: pointer; padding: 10px; border-radius: 8px; margin-bottom: 5px; transition: 0.2s; }
-        /* This changes the color when you hover over a class folder. */
         .class-item:hover { background: #eef4ff; color: #1a73e8; }
-        /* This shapes the tiny preview images of your uploaded notes. */
         .image-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-        /* This creates the little red 'X' to delete an image before uploading. */
         .remove-img { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; font-weight: bold; border: 1px solid white; }
-        /* This changes your mouse icon to a 'hand' when you can move a file. */
-        .draggable-file {
-            cursor: grab;
-            background: #fff;
-            transition: transform 0.1s;
-        }
-        /* This makes the cursor look like it's squeezing the file while dragging. */
-        .draggable-file:active {
-            cursor: grabbing;
-        }
-        /* This adds a little space at the bottom of folders so you can drop files into them. */
-        .file-list-container {
-            padding-bottom: 10px; 
-        }
-    /* This ends the styling/decor section. */
+        .draggable-file { cursor: grab; background: #fff; transition: transform 0.1s; }
+        .draggable-file:active { cursor: grabbing; }
+        .file-list-container { padding-bottom: 10px; }
     </style>
 </head>
 <body class="text-center">
@@ -134,7 +99,7 @@
                 
                 <form id="upload-form">
                     <div class="mb-4 text-start">
-                        <label class="form-label fw-bold">Step 1: Upload note images (Select multiple)</label>
+                        <label class="form-label fw-bold">Step 1: Upload note images</label>
                         <input type="file" id="file-input" class="form-control" multiple>
                     </div>
 
@@ -147,15 +112,11 @@
                         <label class="fw-bold mb-2">Step 2: Pick form of notes</label>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="mode" id="modeSummary" value="summary" checked>
-                            <label class="form-check-label" for="modeSummary">
-                                <strong>📚 Detailed Study Guide</strong> 
-                            </label>
+                            <label class="form-check-label" for="modeSummary"><strong>📚 Detailed Study Guide</strong></label>
                         </div>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="radio" name="mode" id="modeVocab" value="vocab_list">
-                            <label class="form-check-label" for="modeVocab">
-                                <strong>📝 Vocab List</strong> (for Quizlet export)
-                            </label>
+                            <label class="form-check-label" for="modeVocab"><strong>📝 Vocab List</strong> (for Quizlet)</label>
                         </div>
                     </div>
 
@@ -171,7 +132,8 @@
                 
                 <div class="mt-4">
                     <button id="download-btn" class="btn btn-primary btn-lg" style="display:none;" onclick="downloadPDF()">📥 Download PDF</button>
-                    <button id="quizlet-btn" class="btn btn-success btn-lg" style="display:none;" onclick="sendToQuizlet()">Export to Quizlet</button>
+                    <button id="quizlet-btn" class="btn btn-success btn-lg" style="display:none;" onclick="window.open('https://quizlet.com/create-set', '_blank')">🔗 Open Quizlet</button>
+                    
                     <div id="save-section" class="mt-3" style="display:none;">
                         <hr>
                         <p class="text-muted small">Save this result to a class folder:</p>
@@ -187,333 +149,182 @@
 </div>
 
 <script>
-    // We create "shortcuts" to find things in the website quickly.
     const form = document.getElementById('upload-form');
-    // Find the file picker.
     const fileInput = document.getElementById('file-input');
-    // Find the spot where notes are displayed.
     const resultDiv = document.getElementById('result');
-    // Find the loading spinner.
     const loading = document.getElementById('loading');
-    // Find the PDF button.
     const downloadBtn = document.getElementById('download-btn');
-    // Find the Quizlet button.
     const quizletBtn = document.getElementById('quizlet-btn');
-    // Find the saving section.
     const saveSection = document.getElementById('save-section');
-    // Find the image preview spot.
     const gallery = document.getElementById('image-gallery');
-    // Find the container for previews.
     const previewContainer = document.getElementById('image-preview-container');
 
-    // These variables hold data while you are using the app.
     let currentVocab = "";
-    // Holds the AI-generated title.
     let currentTitle = "";
-    // Holds the list of files you haven't uploaded yet.
     let selectedFiles = [];
 
-    // This runs when you pick photos from your computer.
     fileInput.onchange = function() {
-        // Turn the file list into a standard list format.
         const newFiles = Array.from(fileInput.files);
-        // Add the new files to our running list of selected photos.
         selectedFiles = selectedFiles.concat(newFiles);
-        // Draw the mini-previews on the screen.
         renderGallery();
-        // Clear the file picker so you can use it again.
         fileInput.value = "";
     };
     
-    // This function creates the mini-previews of your images.
     function renderGallery() {
-        // Clear the preview spot.
         gallery.innerHTML = '';
-        // If we have photos, show the preview area.
         if (selectedFiles.length > 0) {
-            // Make the preview area visible.
             previewContainer.style.display = 'block';
-            // For every photo, create a little thumbnail.
             selectedFiles.forEach((file, index) => {
-                // Create a container for the image and its 'X' button.
                 const wrapper = document.createElement('div');
-                // Allow the 'X' to be positioned relative to the photo.
                 wrapper.className = "position-relative";
-                // Create the image element.
                 const img = document.createElement('img');
-                // Give the image a temporary link to show the file.
                 img.src = URL.createObjectURL(file);
-                // Style the thumbnail.
                 img.className = "image-thumb shadow-sm";
-                // Create the red 'X' button.
                 const removeBtn = document.createElement('div');
-                // Style the 'X'.
                 removeBtn.className = "remove-img";
-                // Add the 'X' symbol.
                 removeBtn.innerHTML = "×";
-                // If clicked, remove the photo from our list and redraw.
                 removeBtn.onclick = () => {
-                    // Delete the file from our memory.
                     selectedFiles.splice(index, 1);
-                    // Update the screen.
                     renderGallery();
                 };
-                // Put the image inside the wrapper.
                 wrapper.appendChild(img);
-                // Put the 'X' button inside the wrapper.
                 wrapper.appendChild(removeBtn);
-                // Put the whole wrapper into the gallery spot on the page.
                 gallery.appendChild(wrapper);
             });
-        // If no photos are left, hide the preview area.
         } else {
             previewContainer.style.display = 'none';
         }
     }
 
-    // Load your saved folders from the computer's memory, or start fresh if empty.
     let myClasses = JSON.parse(localStorage.getItem('study_vault')) || {};
-    // This tracks which class is currently being looked at.
     let activeClassName = null;
 
-    // This function redraws the sidebar and folder lists.
     function updateClassUI() {
-    // Find the sidebar list.
-    const list = document.getElementById('class-list');
-    // Find the dropdown menu for saving.
-    const select = document.getElementById('class-select');
-    
-    // Create a memory of which folders are currently "open" (expanded).
-    const openFolders = {};
-    // Look at every folder on the screen.
-    document.querySelectorAll('.file-list-container').forEach(el => {
-        // Record if it is currently visible.
-        openFolders[el.dataset.classname] = el.style.display === 'block';
-    });
-
-    // Clear the sidebar.
-    list.innerHTML = '';
-    // Reset the dropdown menu.
-    select.innerHTML = '<option value="">Choose Class...</option>';
-    
-    // For every class folder you have saved...
-    Object.keys(myClasses).forEach(className => {
-        // Add the class name to the dropdown menu.
-        select.innerHTML += `<option value="${className}">${className}</option>`;
-        
-        // Create a unique ID for this folder's list of files.
-        const folderId = `files-${className.replace(/\s+/g, '-')}`;
-        // Check if this folder was open before we started redrawing.
-        const isPreviouslyOpen = openFolders[className] || false;
-
-        // Build the HTML for the folder box.
-        let folderHtml = `
-            <div class="mb-2 border rounded p-1">
-                <div class="class-item fw-bold d-flex justify-content-between" onclick="toggleFolder('${className}')">
-                    <span>📁 ${className}</span>
-                    <span class="badge bg-secondary rounded-pill">${myClasses[className].length}</span>
-                </div>
-                <div id="${folderId}" 
-                     class="file-list-container" 
-                     data-classname="${className}"
-                     style="display: ${isPreviouslyOpen ? 'block' : 'none'}; min-height: 20px;">
-        `;
-        
-        // For every file inside this folder...
-        myClasses[className].forEach((file, index) => {
-            // Add a clickable file entry.
-            folderHtml += `
-                <div class="small text-muted p-2 border-start ms-2 mt-1 class-item draggable-file" 
-                     data-index="${index}" 
-                     onclick="viewFile('${className}', ${index})">
-                    ⠿ ${file.title}
-                </div>`;
+        const list = document.getElementById('class-list');
+        const select = document.getElementById('class-select');
+        const openFolders = {};
+        document.querySelectorAll('.file-list-container').forEach(el => {
+            openFolders[el.dataset.classname] = el.style.display === 'block';
         });
-        
-        // Close the folder container.
-        folderHtml += `</div></div>`;
-        // Add the finished folder to the sidebar.
-        list.innerHTML += folderHtml;
-    });
 
-    // Make the files draggable again now that they exist.
-    initDraggable();
-}
-    // This function sets up the "Drag and Drop" logic.
+        list.innerHTML = '';
+        select.innerHTML = '<option value="">Choose Class...</option>';
+        
+        Object.keys(myClasses).forEach(className => {
+            select.innerHTML += `<option value="${className}">${className}</option>`;
+            const folderId = `files-${className.replace(/\s+/g, '-')}`;
+            const isPreviouslyOpen = openFolders[className] || false;
+
+            let folderHtml = `
+                <div class="mb-2 border rounded p-1">
+                    <div class="class-item fw-bold d-flex justify-content-between" onclick="toggleFolder('${className}')">
+                        <span>📁 ${className}</span>
+                        <span class="badge bg-secondary rounded-pill">${myClasses[className].length}</span>
+                    </div>
+                    <div id="${folderId}" class="file-list-container" data-classname="${className}" style="display: ${isPreviouslyOpen ? 'block' : 'none'}; min-height: 20px;">
+            `;
+            
+            myClasses[className].forEach((file, index) => {
+                folderHtml += `
+                    <div class="small text-muted p-2 border-start ms-2 mt-1 class-item draggable-file" data-index="${index}" onclick="viewFile('${className}', ${index})">
+                        ⠿ ${file.title}
+                    </div>`;
+            });
+            folderHtml += `</div></div>`;
+            list.innerHTML += folderHtml;
+        });
+        initDraggable();
+    }
+
     function initDraggable() {
-    // Find every folder on the screen.
-    const containers = document.querySelectorAll('.file-list-container');
-    
-    // For each folder...
-    containers.forEach(container => {
-        // Initialize the 'Sortable' tool.
-        new Sortable(container, {
-            // This name allows folders to share files with each other.
-            group: 'shared', 
-            // How fast the animation moves.
-            animation: 150,
-            // What color the "ghost" file is while you are moving it.
-            ghostClass: 'bg-light',
-            // This runs when you let go of the mouse.
-            onEnd: function (evt) {
-                // Record which folder it came from.
-                const fromClass = evt.from.dataset.classname;
-                // Record which folder it went to.
-                const toClass = evt.to.dataset.classname;
-                // Record its old spot in the list.
-                const oldIndex = evt.oldIndex;
-                // Record its new spot in the list.
-                const newIndex = evt.newIndex;
-
-                // Move the file from the old folder's list to the new folder's list in memory.
-                const movedFile = myClasses[fromClass].splice(oldIndex, 1)[0];
-
-                // Put it into the new list at the correct spot.
-                myClasses[toClass].splice(newIndex, 0, movedFile);
-
-                // Save the permanent change to your computer's memory.
-                localStorage.setItem('study_vault', JSON.stringify(myClasses));
-
-                // Redraw the screen to show the new numbers.
-                updateClassUI();
-            },
+        const containers = document.querySelectorAll('.file-list-container');
+        containers.forEach(container => {
+            new Sortable(container, {
+                group: 'shared', 
+                animation: 150,
+                ghostClass: 'bg-light',
+                onEnd: function (evt) {
+                    const fromClass = evt.from.dataset.classname;
+                    const toClass = evt.to.dataset.classname;
+                    const oldIndex = evt.oldIndex;
+                    const newIndex = evt.newIndex;
+                    const movedFile = myClasses[fromClass].splice(oldIndex, 1)[0];
+                    myClasses[toClass].splice(newIndex, 0, movedFile);
+                    localStorage.setItem('study_vault', JSON.stringify(myClasses));
+                    updateClassUI();
+                },
+            });
         });
-    });
-}
+    }
 
-    // This makes folders open and close when you click them.
     function toggleFolder(className) {
-    // Find the folder ID.
-    const folderId = `files-${className.replace(/\s+/g, '-')}`;
-    // Find the actual element on the page.
-    const folderElement = document.getElementById(folderId);
-    
-    // If the folder exists...
-    if (folderElement) {
-        // Check if it is currently hidden.
-        const isHidden = folderElement.style.display === 'none';
-        // If it was hidden, show it; if it was shown, hide it.
-        folderElement.style.display = isHidden ? 'block' : 'none';
+        const folderId = `files-${className.replace(/\s+/g, '-')}`;
+        const folderElement = document.getElementById(folderId);
+        if (folderElement) {
+            folderElement.style.display = folderElement.style.display === 'none' ? 'block' : 'none';
+        }
     }
-}
 
-    // This function displays a saved file when you click it in the sidebar.
     function viewFile(className, fileIndex) {
-    // Find the file in our memory.
-    const file = myClasses[className][fileIndex];
-    // Record its title.
-    currentTitle = file.title;
-    
-    // If this file is a vocab list...
-    if (file.type === 'vocab') {
-        // Record the raw vocab data.
-        currentVocab = file.vocabData;
-        // Show the Quizlet button.
-        quizletBtn.style.display = 'inline-block';
-    } else {
-        // Otherwise, hide the Quizlet button.
-        quizletBtn.style.display = 'none';
-    }
-
-    // Put the file's content into the main workspace.
-    resultDiv.innerHTML = `
-        <div class="alert alert-info d-flex justify-content-between align-items-center py-2">
-            <span>Viewing: <strong>${file.title}</strong> (${className})</span>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-outline-info" onclick="renameFile('${className}', ${fileIndex})">✏️ Rename</button>
-                <button class="btn btn-sm btn-outline-info" onclick="deleteFile('${className}', ${fileIndex})">🗑️ Delete</button>
+        const file = myClasses[className][fileIndex];
+        currentTitle = file.title;
+        if (file.type === 'vocab') {
+            currentVocab = file.vocabData;
+            quizletBtn.style.display = 'inline-block';
+        } else {
+            quizletBtn.style.display = 'none';
+        }
+        resultDiv.innerHTML = `
+            <div class="alert alert-info d-flex justify-content-between align-items-center py-2">
+                <span>Viewing: <strong>${file.title}</strong> (${className})</span>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-info" onclick="renameFile('${className}', ${fileIndex})">✏️ Rename</button>
+                    <button class="btn btn-sm btn-outline-info" onclick="deleteFile('${className}', ${fileIndex})">🗑️ Delete</button>
+                </div>
             </div>
-        </div>
-        ${file.content}
-    `;
-    // Make the workspace visible.
-    resultDiv.style.display = 'block';
-    // Show the PDF download button.
-    downloadBtn.style.display = 'inline-block';
-}
-// This function deletes a file permanently.
-function deleteFile(className, fileIndex) {
-    // Find the name of the file to delete.
-    const fileName = myClasses[className][fileIndex].title;
-    
-    // Pop up a warning box.
-    const confirmed = confirm(`Are you sure you want to delete "${fileName}"? This cannot be undone.`);
-    
-    // If they clicked 'Yes'...
-    if (confirmed) {
-        // Delete the file from our memory list.
-        myClasses[className].splice(fileIndex, 1);
-        
-        // Save the change to the computer.
-        localStorage.setItem('study_vault', JSON.stringify(myClasses));
-        
-        // Update the sidebar.
-        updateClassUI();
-        
-        // Hide the workspace.
-        resultDiv.style.display = 'none';
-        // Clear the text.
-        resultDiv.innerHTML = "";
-        // Hide the buttons.
-        downloadBtn.style.display = 'none';
-        quizletBtn.style.display = 'none';
-        saveSection.style.display = 'none';
-        
-        // Reassure the user.
-        alert("File deleted successfully.");
+            ${file.content}
+        `;
+        resultDiv.style.display = 'block';
+        downloadBtn.style.display = 'inline-block';
     }
-}
 
-    // This function lets the user change a file's name.
-    function renameFile(className, fileIndex) {
-        // Record the current name.
-        const oldName = myClasses[className][fileIndex].title;
-        // Pop up a box to ask for a new name.
-        const newName = prompt("Rename this file:", oldName);
-        // If they typed something new...
-        if (newName && newName !== oldName) {
-            // Update the name in memory.
-            myClasses[className][fileIndex].title = newName;
-            // Save it to the computer.
+    function deleteFile(className, fileIndex) {
+        if (confirm("Delete this file permanently?")) {
+            myClasses[className].splice(fileIndex, 1);
             localStorage.setItem('study_vault', JSON.stringify(myClasses));
-            // Redraw the sidebar.
             updateClassUI();
-            // Show the file again to update the header.
+            resultDiv.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            quizletBtn.style.display = 'none';
+        }
+    }
+
+    function renameFile(className, fileIndex) {
+        const oldName = myClasses[className][fileIndex].title;
+        const newName = prompt("Rename this file:", oldName);
+        if (newName && newName !== oldName) {
+            myClasses[className][fileIndex].title = newName;
+            localStorage.setItem('study_vault', JSON.stringify(myClasses));
+            updateClassUI();
             viewFile(className, fileIndex);
         }
     }
 
-    // This function creates a brand new class folder.
     function createNewClass() {
-        // Ask the user for the class name.
-        const name = prompt("Enter Class Name (e.g. Biology):");
-        // If they gave a name that doesn't exist yet...
+        const name = prompt("Enter Class Name:");
         if (name && !myClasses[name]) {
-            // Create an empty list for that class.
             myClasses[name] = [];
-            // Save it.
             localStorage.setItem('study_vault', JSON.stringify(myClasses));
-            // Redraw the sidebar.
             updateClassUI();
         }
     }
 
-    // This function saves the AI's current result into a folder.
     function saveResultToClass() {
-        // Find which class folder they chose in the dropdown.
         const className = document.getElementById('class-select').value;
-        // If they didn't pick one, tell them to do so.
         if (!className) return alert("Select a class first!");
-        
-        // Ask them what they want to name the file.
         const fileName = prompt("Name this file:", currentTitle || "Untitled Note");
-        // If they clicked cancel, stop.
         if (!fileName) return; 
-
-        // Check if the Quizlet button is visible to see if this is vocab or a summary.
         const isVocab = (quizletBtn.style.display === 'inline-block');
-
-        // Create a data "packet" with the notes and some details.
         const noteEntry = {
             title: fileName,
             content: resultDiv.innerHTML,
@@ -521,134 +332,87 @@ function deleteFile(className, fileIndex) {
             vocabData: isVocab ? currentVocab : null,
             date: new Date().toLocaleDateString()
         };
-        
-        // Put that packet into the folder.
         myClasses[className].push(noteEntry);
-        // Save the updated folder to the computer.
         localStorage.setItem('study_vault', JSON.stringify(myClasses));
-        // Record this as the active class.
-        activeClassName = className;
-        // Redraw the sidebar.
         updateClassUI();
-        
-        // Open the folder we just saved to so the user can see it.
-        const newFolderId = `files-${className.replace(/\s+/g, '-')}`;
-        document.getElementById(newFolderId).style.display = 'block';
-
-        // Tell the user it worked.
-        alert(`Saved "${fileName}" to ${className}`);
+        alert(`Saved to ${className}`);
     }
 
-    // This runs when you click the big blue "Generate Now" button.
     form.onsubmit = async (e) => {
-        // Prevent the page from refreshing.
         e.preventDefault();
-        // If they didn't pick images, show an error.
         if (selectedFiles.length === 0) return alert("Please select images first.");
         
-        // Hide the workspace and buttons while we wait.
         resultDiv.style.display = 'none';
         downloadBtn.style.display = 'none';
         quizletBtn.style.display = 'none';
         saveSection.style.display = 'none';
-        // Show the loading spinner.
         loading.style.display = 'block';
 
-        // Prepare the photos and the mode to send to the server.
         const formData = new FormData();
-        // Check which mode circle they clicked.
         const selectedMode = document.querySelector('input[name="mode"]:checked').value;
-        // Add the mode to the package.
         formData.append('mode', selectedMode);
-        // Add every photo to the package.
         selectedFiles.forEach(file => formData.append('image', file));
 
         try {
-            // Send the package to the Python server and wait for a response.
             const response = await fetch('/analyze', { method: 'POST', body: formData });
-            // Turn the response into usable data.
             const data = await response.json();
 
-            // If the server sent back an error...
             if (data.error) {
-                // Show the error message in red.
                 resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
                 resultDiv.style.display = 'block';
             } else {
-                // If they picked vocab mode...
                 if (selectedMode === 'vocab_list') {
                     currentVocab = data.vocab;
-                    currentTitle = data.title;
-                    let tableContent = `<h2>${currentTitle}</h2><table class="vocab-table"><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody>`;
-                    data.vocab.trim().split('\n').forEach(row => {
-                        const cols = row.split('\t');
-                        if (cols.length >= 2) tableContent += `<tr><td><strong>${cols[0]}</strong></td><td>${cols[1]}</td></tr>`;
+                    currentTitle = data.title || "Vocab List";
+                    
+                    // ADDED: Copy Button in the UI
+                    let tableContent = `
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2>${currentTitle}</h2>
+                            <button class="btn btn-outline-primary btn-sm" onclick="copyVocab()">📋 Copy for Quizlet</button>
+                        </div>
+                        <table class="vocab-table"><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody>`;
+                    
+                    const lines = data.vocab.trim().split('\n');
+                    lines.forEach(line => {
+                        if (!line.trim()) return;
+                        // SMART SPLIT: Tab, Dash, or Colon
+                        let parts = line.split('\t');
+                        if (parts.length < 2) parts = line.split(' - ');
+                        if (parts.length < 2) parts = line.split(': ');
+
+                        if (parts.length >= 2) {
+                            tableContent += `<tr><td><strong>${parts[0].trim()}</strong></td><td>${parts.slice(1).join(': ').trim()}</td></tr>`;
+                        }
                     });
                     tableContent += `</tbody></table>`;
                     resultDiv.innerHTML = tableContent;
                     quizletBtn.style.display = 'inline-block';
-                } 
-                else {
+                } else {
                     currentTitle = "Study Guide";
                     let formattedContent = data.result.replace(/\\\[/g, '$$$$').replace(/\\\]/g, '$$$$').replace(/\\\(/g, '$').replace(/\\\)/g, '$');
                     resultDiv.innerHTML = marked.parse(formattedContent);
                 }
-                // Show the workspace.
                 resultDiv.style.display = 'block';
-                // Show the download button.
                 downloadBtn.style.display = 'inline-block';
-                // Show the save dropdown.
                 saveSection.style.display = 'block';
-                // If math equations are present, tell MathJax to make them look pretty.
                 if (window.MathJax) MathJax.typesetPromise([resultDiv]);
             }
-        // If the connection failed entirely...
         } catch (err) {
-            // Show a red error box.
             resultDiv.innerHTML = `<div class="alert alert-danger">Connection failed.</div>`;
             resultDiv.style.display = 'block';
         } finally {
-            // Hide the loading spinner no matter what happens.
             loading.style.display = 'none';
         }
     };
 
-    // This function creates the PDF file.
     function downloadPDF() {
-        // Find the notes on the screen.
         const element = document.getElementById('result');
-        // Set the settings for the PDF file.
         const opt = { margin: 10, filename: (currentTitle || 'Study_Guide').replace(/\s+/g, '_') + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-        // Create the PDF and download it.
         html2pdf().set(opt).from(element).save();
     }
 
-    // This function starts the robot to send data to Quizlet.
-    async function sendToQuizlet() {
-        // Disable the button so the user doesn't click it twice.
-        quizletBtn.disabled = true;
-        // Change the text to show it is working.
-        quizletBtn.innerText = "🚀 Sending...";
-        try {
-            // Send the vocab to the Python robot and wait.
-            const response = await fetch('/run_quizlet', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ vocab: currentVocab, title: currentTitle }) });
-            // Get the success message.
-            const data = await response.json();
-            // Tell the user it worked.
-            alert(data.message || "Done!");
-        } catch (err) {
-            // Tell the user it failed.
-            alert("Automation failed.");
-        } finally {
-            // Re-enable the button.
-            quizletBtn.disabled = false;
-            // Set the text back to normal.
-            quizletBtn.innerText = "Export to Quizlet";
-        }
-    }
-    // Run the sidebar update as soon as the page opens.
     updateClassUI();
-// End of the brain/logic.
 </script>
 </body>
 </html>
