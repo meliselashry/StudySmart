@@ -28,7 +28,6 @@ def encode_image_to_data_url(file_bytes: bytes, filename: str) -> str:
 # --- AI BRAIN METHODS ---
 
 def make_summary_from_image(image_data_urls: list) -> str:
-    """Creates detailed study notes from images."""
     prompt = "Turn these classroom images into clean study notes."
     content = [{"type": "text", "text": prompt}]
     for url in image_data_urls:
@@ -42,18 +41,16 @@ def make_summary_from_image(image_data_urls: list) -> str:
 
 def make_vocab_data_combined(image_data_urls: list):
     """
-    Fetches BOTH vocab and title in one AI call.
-    This is much faster and prevents 'Connection Failed' timeouts on Render.
+    Fetches title and vocab with a robust parser to prevent empty tables.
     """
-    prompt = """Analyze these images and provide:
-    1. A short, specific title (e.g., 'Parts of the Human Cell').
-    2. Important vocabulary terms and definitions.
+    prompt = """Analyze these images and extract vocabulary.
     
     Format your response EXACTLY like this:
     TITLE: [Insert Title Here]
     VOCAB:
-    term1<TAB>definition1
-    term2<TAB>definition2
+    term<TAB>definition
+    
+    Do not include any other text, greetings, or markdown formatting (like ```).
     """
     content = [{"type": "text", "text": prompt}]
     for url in image_data_urls:
@@ -64,28 +61,45 @@ def make_vocab_data_combined(image_data_urls: list):
         messages=[{"role": "user", "content": content}]
     )
     
-    full_text = response.choices[0].message.content
+    full_text = response.choices[0].message.content.strip()
     
-    # Split the Title and the Vocab list from the AI's single response
-    try:
-        title = full_text.split("TITLE:")[1].split("VOCAB:")[0].strip()
+    # DEBUG: This will show up in your Render logs so you can see if the AI is behaving
+    print(f"--- AI RAW RESPONSE ---\n{full_text}\n-----------------------")
+
+    title = "Class Vocabulary"
+    vocab = ""
+
+    # 1. Robust Title Extraction
+    if "TITLE:" in full_text:
+        try:
+            # Get everything between TITLE: and VOCAB:
+            title_match = full_text.split("TITLE:")[1].split("VOCAB:")[0].strip()
+            if title_match:
+                title = title_match
+        except:
+            pass
+    
+    # 2. Robust Vocab Extraction
+    if "VOCAB:" in full_text:
         vocab = full_text.split("VOCAB:")[1].strip()
-        return vocab, title
-    except Exception:
-        # Fallback if AI messes up the format
-        return full_text, "Class Vocabulary"
+    else:
+        # Safety net: If AI forgets 'VOCAB:', assume the whole response is the list
+        vocab = full_text
+
+    # Clean up any leftover markdown code blocks if the AI ignored instructions
+    vocab = vocab.replace("```text", "").replace("```", "").strip()
+
+    return vocab, title
 
 # --- BROWSER ROBOT ---
 def send_vocab_to_quizlet(vocab_text: str, smart_title: str):
     pw = sync_playwright().start()
     try:
-        # Headless must be True for Render servers
         browser = pw.chromium.launch(headless=True, args=["--no-sandbox"])
         page = browser.new_page()
-        page.goto("https://quizlet.com/create-set")
+        page.goto("[https://quizlet.com/create-set](https://quizlet.com/create-set)")
         
-        # Note: If Quizlet asks for a login, a headless browser on a server 
-        # may get stuck. This is a best-effort automation.
+        # Wait up to 10 seconds for the page to load
         page.wait_for_selector("input[name='title']", timeout=10000)
         page.fill("input[name='title']", smart_title)
         
@@ -117,13 +131,18 @@ def analyze():
 
     try:
         if mode == "vocab_list":
-            # Running the combined function to save time and prevent timeouts
             vocab, title = make_vocab_data_combined(image_data_urls)
+            
+            # Final Safety: If it's still empty, tell the user why
+            if not vocab or len(vocab) < 3:
+                return jsonify({"error": "The AI couldn't find vocabulary in these images. Please ensure the text is clear."}), 500
+                
             return jsonify({"vocab": vocab, "title": title})
         else:
             result = make_summary_from_image(image_data_urls)
             return jsonify({"result": result})
     except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/run_quizlet", methods=["POST"])
@@ -136,6 +155,5 @@ def run_quizlet():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    # Ensure port is pulled from environment for Render compatibility
     port = int(os.environ.get("PORT", 5011))
     app.run(host='0.0.0.0', port=port)
